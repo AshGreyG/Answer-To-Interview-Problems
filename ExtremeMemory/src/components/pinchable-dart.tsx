@@ -34,6 +34,10 @@ interface PinchableDartProps {
   color4?: `#${string}`;
   /** The color of ring 10~11, default to #ffffff */
   color5?: `#${string}`;
+  /** The color of dark stroke, default to #000000 */
+  colorStrokeDark?: `#${string}`;
+  /** The color of light stroke, default to #ffffff */
+  colorStrokeLight?: `#${string}`;
 }
 
 export default function PinchableDart({
@@ -44,6 +48,8 @@ export default function PinchableDart({
   color3 = "#0000ff",
   color4 = "#000000",
   color5 = "#ffffff",
+  colorStrokeDark = "#000000",
+  colorStrokeLight = "#ffffff",
 }: PinchableDartProps) {
   const canvasRef = useRef<Optional<HTMLCanvasElement>>(null);
   const context = useRef<Optional<CanvasRenderingContext2D>>(null);
@@ -67,22 +73,36 @@ export default function PinchableDart({
         .every((digit) => HEX_COLOR.includes(digit)) &&
       (color.length === 7 || color.length === 4);
 
+    const gammaCorrect = (value: number): number => {
+      return value <= 0.03928
+        ? value / 12.92
+        : Math.pow((value + 0.055) / 1.055, 2.4);
+    }
+
     try {
       if (!isHexColor)
         throw new Error("[Utils]: Input color is not a hex presentation");
 
       if (color.length === 7) {
-        const r = parseInt(color.slice(1, 3), 16);
-        const g = parseInt(color.slice(3, 5), 16);
-        const b = parseInt(color.slice(5, 7), 16);
+        const r = parseInt(color.slice(1, 3), 16) / 255;
+        const g = parseInt(color.slice(3, 5), 16) / 255;
+        const b = parseInt(color.slice(5, 7), 16) / 255;
 
-        return (0.299 * r + 0.587 * g + 0.114 * b) / 255 >= 0.5;
+        const rCorrect = gammaCorrect(r);
+        const gCorrect = gammaCorrect(g);
+        const bCorrect = gammaCorrect(b);
+
+        return 0.2126 * rCorrect + 0.7152 * gCorrect + 0.0722 * bCorrect >= 0.5;
       } else {
-        const r = parseInt(color.charAt(1), 16);
-        const g = parseInt(color.charAt(2), 16);
-        const b = parseInt(color.charAt(3), 16);
+        const r = parseInt(color.charAt(1), 16) / 255;
+        const g = parseInt(color.charAt(2), 16) / 255;
+        const b = parseInt(color.charAt(3), 16) / 255;
 
-        return (0.299 * r + 0.587 * g + 0.114 * b) / 16 >= 0.5;
+        const rCorrect = gammaCorrect(r);
+        const gCorrect = gammaCorrect(g);
+        const bCorrect = gammaCorrect(b);
+
+        return 0.2126 * rCorrect + 0.7152 * gCorrect + 0.0722 * bCorrect >= 0.5;
       }
     } catch (err) {
       console.error(err instanceof Error ? err.message : err);
