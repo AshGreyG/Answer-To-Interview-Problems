@@ -9,6 +9,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Get into correct directory
+        run: cd ./ExtremeMemory
+
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -19,9 +22,7 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies
-        run: |
-          cd ./ExtremeMemory
-          npm ci
+        run: npm ci
 
       - name: Install Vercel CLI
         run: npm install -g vercel
