@@ -11,6 +11,8 @@ jobs:
     steps:
       - name: Get into correct directory
         run: |
+          ls -a
+          pwd
           echo "📦 Github Workspace is ${{ github.workspace }}"
           cd ${{ github.workspace }}/ExtremeMemory
 
