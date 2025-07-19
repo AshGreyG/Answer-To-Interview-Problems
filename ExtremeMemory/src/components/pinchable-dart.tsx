@@ -64,15 +64,15 @@ export default function PinchableDart({
   const contextRef = useRef<Optional<CanvasRenderingContext2D>>(null);
 
   /* prettier-ignore */
-  const [center, setCenter] = useState<Point>({ x: width / 2, y: height / 2 });
+  const [center, ] = useState<Point>({ x: width / 2, y: height / 2 });
   /* prettier-ignore */
   const [points, setPoints] = useState<Point[]>([]);
   /* prettier-ignore */
   const [initialPinchPair, setInitialPinchPair] = useState<Optional<[Point, Point]>>(null);
   /* prettier-ignore */
-  const [currentPinchPair, setCurrentPinchPair] = useState<Optional<[Point, Point]>>(null);
+  const [ , setCurrentPinchPair] = useState<Optional<[Point, Point]>>(null);
   /* prettier-ignore */
-  const [draggingPoint, setDraggingPoint] = useState<Optional<Point>>(null);
+  const [ , ] = useState<Optional<Point>>(null);
   /* prettier-ignore */
   const [scale, setScale] = useState<number>(1);
 
