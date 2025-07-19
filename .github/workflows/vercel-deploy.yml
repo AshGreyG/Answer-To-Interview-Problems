@@ -9,15 +9,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Get into correct directory
         run: |
           ls -a
           pwd
           echo "📦 Github Workspace is ${{ github.workspace }}"
           cd ${{ github.workspace }}/ExtremeMemory
-
-      - name: Checkout code
-        uses: actions/checkout@v4
 
       - name: Install Node.js
         uses: actions/setup-node@v4
