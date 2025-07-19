@@ -68,6 +68,10 @@ export default function PinchableDart({
   /* prettier-ignore */
   const [points, setPoints] = useState<Point[]>([]);
   /* prettier-ignore */
+  const [initialPinchPair, setInitialPinchPair] = useState<Optional<[Point, Point]>>(null);
+  /* prettier-ignore */
+  const [currentPinchPair, setCurrentPinchPair] = useState<Optional<[Point, Point]>>(null);
+  /* prettier-ignore */
   const [draggingPoint, setDraggingPoint] = useState<Optional<Point>>(null);
   /* prettier-ignore */
   const [scale, setScale] = useState<number>(1);
@@ -237,6 +241,50 @@ export default function PinchableDart({
     ]);
   };
 
+  const handlePinchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (e.touches.length !== 2) return;
+
+    const touch1: Point = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
+    };
+    const touch2: Point = {
+      x: e.touches[1].clientX,
+      y: e.touches[1].clientY,
+    };
+    setInitialPinchPair([touch1, touch2]);
+  };
+
+  const handlePinchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (e.touches.length !== 2 || initialPinchPair === null) return;
+
+    const touch1: Point = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
+    };
+    const touch2: Point = {
+      x: e.touches[1].clientX,
+      y: e.touches[0].clientY,
+    };
+    setCurrentPinchPair([touch1, touch2]);
+
+    const initialDistance = Math.hypot(
+      initialPinchPair[0].x - initialPinchPair[1].x,
+      initialPinchPair[0].y - initialPinchPair[1].y,
+    );
+    const currentDistance = Math.hypot(
+      touch1.x - touch2.x,
+      touch1.y - touch2.y,
+    );
+
+    setScale(currentDistance / initialDistance);
+  };
+
+  const handlePinchEnd = () => {
+    setInitialPinchPair(null);
+    setCurrentPinchPair(null);
+  };
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (canvas !== null) {
@@ -249,5 +297,13 @@ export default function PinchableDart({
 
   useEffect(() => drawDart(), [points, scale]);
 
-  return <canvas ref={canvasRef} onClick={handleClick} />;
+  return (
+    <canvas
+      ref={canvasRef}
+      onClick={handleClick}
+      onTouchStart={handlePinchStart}
+      onTouchMove={handlePinchMove}
+      onTouchEnd={handlePinchEnd}
+    />
+  );
 }
