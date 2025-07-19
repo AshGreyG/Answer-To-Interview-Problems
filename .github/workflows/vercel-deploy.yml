@@ -10,7 +10,7 @@ jobs:
 
     steps:
       - name: Get into correct directory
-        run: cd ./ExtremeMemory
+        run: cd ${{ github.workspace }}/ExtremeMemory
 
       - name: Checkout code
         uses: actions/checkout@v4
