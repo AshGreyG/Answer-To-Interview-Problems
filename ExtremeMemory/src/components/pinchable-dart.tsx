@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 // prettier-multiline-arrays-next-line-pattern: 11
 const RING_RADIUS = Object.freeze([
@@ -38,6 +38,12 @@ interface PinchableDartProps {
   colorStrokeDark?: `#${string}`;
   /** The color of light stroke, default to #ffffff */
   colorStrokeLight?: `#${string}`;
+  /** The color of points */
+  colorPoint?: `#${string}`;
+  /** The width of dark stroke, default to 1.5 */
+  dartStrokeWidth?: number;
+  /** The base radius of points. */
+  pointRadius?: number;
 }
 
 export default function PinchableDart({
@@ -50,16 +56,23 @@ export default function PinchableDart({
   color5 = "#ffffff",
   colorStrokeDark = "#000000",
   colorStrokeLight = "#ffffff",
+  colorPoint = "#dddddd",
+  dartStrokeWidth = 1.5,
+  pointRadius = 5,
 }: PinchableDartProps) {
   const canvasRef = useRef<Optional<HTMLCanvasElement>>(null);
-  const context = useRef<Optional<CanvasRenderingContext2D>>(null);
+  const contextRef = useRef<Optional<CanvasRenderingContext2D>>(null);
 
+  /* prettier-ignore */
+  const [center, setCenter] = useState<Point>({ x: width / 2, y: height / 2 });
   /* prettier-ignore */
   const [points, setPoints] = useState<Point[]>([]);
   /* prettier-ignore */
   const [draggingPoint, setDraggingPoint] = useState<Optional<Point>>(null);
   /* prettier-ignore */
   const [scale, setScale] = useState<number>(1);
+
+  const INITIAL_CANVAS_BASE = Math.min(width, height) / 40;
 
   /**
    * @remark Define a definite type of hex color is impossible, 22 ^ 4 > 100000.
@@ -77,7 +90,7 @@ export default function PinchableDart({
       return value <= 0.03928
         ? value / 12.92
         : Math.pow((value + 0.055) / 1.055, 2.4);
-    }
+    };
 
     try {
       if (!isHexColor)
@@ -114,13 +127,114 @@ export default function PinchableDart({
    * This function draws the dart and the points.
    */
   const drawDart = () => {
-    const drawContext = context.current;
+    const drawContext = contextRef.current;
     if (drawContext === null) return;
 
     drawContext.clearRect(0, 0, width, height);
 
-    const initialDartCenterX = width / 2;
-    const initialDartCenterY = height / 2;
+    RING_RADIUS.map((r, index) => {
+      let currentColor = "#null" as `#${string}`;
+      switch (index) {
+        case 0:
+        case 1:
+        case 2:
+          currentColor = color1;
+          break;
+        case 3:
+        case 4:
+          currentColor = color2;
+          break;
+        case 5:
+        case 6:
+          currentColor = color3;
+          break;
+        case 7:
+        case 8:
+          currentColor = color4;
+          break;
+        case 9:
+        case 10:
+          currentColor = color5;
+          break;
+      }
+
+      drawContext.lineWidth = dartStrokeWidth;
+      drawContext.strokeStyle = isLight(currentColor)
+        ? colorStrokeDark
+        : colorStrokeLight;
+
+      drawContext.fillStyle = currentColor;
+
+      drawContext.beginPath();
+      drawContext.arc(
+        center.x,
+        center.y,
+        r * INITIAL_CANVAS_BASE * scale,
+        0,
+        Math.PI * 2,
+      );
+      drawContext.stroke();
+
+      drawContext.beginPath();
+      if (index === 0) {
+        drawContext.arc(
+          center.x,
+          center.y,
+          r * INITIAL_CANVAS_BASE * scale - dartStrokeWidth / 2,
+          0,
+          Math.PI * 2,
+        );
+        drawContext.fill();
+      } else {
+        drawContext.arc(
+          center.x,
+          center.y,
+          r * INITIAL_CANVAS_BASE * scale - dartStrokeWidth / 2,
+          0,
+          Math.PI * 2,
+        );
+        drawContext.arc(
+          center.x,
+          center.y,
+          RING_RADIUS[index - 1] * INITIAL_CANVAS_BASE * scale +
+            dartStrokeWidth / 2,
+          0,
+          Math.PI * 2,
+          true,
+        );
+        drawContext.fill();
+      }
+    });
+
+    points.map((point) => {
+      drawContext.beginPath();
+      drawContext.fillStyle = colorPoint;
+      drawContext.arc(
+        (center.x + point.x) * scale,
+        (center.y + point.y) * scale,
+        pointRadius * scale,
+        0,
+        Math.PI * 2,
+      );
+      drawContext.fill();
+    });
+  };
+
+  const handleClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas || !contextRef.current) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const clickAbsoluteX = e.clientX - rect.left;
+    const clickAbsoluteY = e.clientY - rect.top;
+
+    setPoints([
+      ...points,
+      {
+        x: (clickAbsoluteX - center.x * scale) / scale,
+        y: (clickAbsoluteY - center.y * scale) / scale,
+      },
+    ]);
   };
 
   useEffect(() => {
@@ -128,9 +242,12 @@ export default function PinchableDart({
     if (canvas !== null) {
       canvas.width = width;
       canvas.height = height;
-      context.current = canvas.getContext("2d");
+      contextRef.current = canvas.getContext("2d");
     }
+    drawDart();
   }, []);
 
-  return <canvas ref={canvasRef} />;
+  useEffect(() => drawDart(), [points, scale]);
+
+  return <canvas ref={canvasRef} onClick={handleClick} />;
 }
