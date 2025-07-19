@@ -10,7 +10,9 @@ jobs:
 
     steps:
       - name: Get into correct directory
-        run: cd ${{ github.workspace }}/ExtremeMemory
+        run: |
+          echo "📦 Github Workspace is ${{ github.workspace }}"
+          cd ${{ github.workspace }}/ExtremeMemory
 
       - name: Checkout code
         uses: actions/checkout@v4
