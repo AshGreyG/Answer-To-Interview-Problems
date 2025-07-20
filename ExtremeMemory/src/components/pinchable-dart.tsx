@@ -277,7 +277,12 @@ export default function PinchableDart({
       touch1.y - touch2.y,
     );
 
-    setScale(currentDistance / initialDistance);
+    if (
+      currentDistance / initialDistance >= 0.2 &&
+      currentDistance / initialDistance <= 5
+    ) {
+      setScale(currentDistance / initialDistance);
+    }
   };
 
   const handlePinchEnd = () => {
