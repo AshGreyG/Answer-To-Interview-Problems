@@ -46,6 +46,21 @@ interface PinchableDartProps {
   pointRadius?: number;
 }
 
+function throttle(callbackFn: Function, delay: number) {
+  let lastTime = 0;
+
+  return function (...args: unknown[]) {
+    // @ts-expect-error
+    const context = this;
+    const now = Date.now();
+
+    if (now - lastTime >= delay) {
+      lastTime = now;
+      callbackFn.apply(context, args);
+    }
+  };
+}
+
 export default function PinchableDart({
   width = 800,
   height = 800,
@@ -307,7 +322,10 @@ export default function PinchableDart({
       ref={canvasRef}
       onClick={handleClick}
       onTouchStart={handlePinchStart}
-      onTouchMove={handlePinchMove}
+      onTouchMove={throttle(
+        (e: React.TouchEvent<HTMLCanvasElement>) => handlePinchMove(e),
+        16,
+      )}
       onTouchEnd={handlePinchEnd}
     />
   );
