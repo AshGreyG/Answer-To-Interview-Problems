@@ -12,6 +12,10 @@ const HEX_COLOR = Object.freeze([
   "f", "F",
 ]);
 
+const ABSOLUTE_TARGET_DISTANCE = 20;
+
+const LONG_PRESS_TIME = 400;
+
 type Optional<T> = T | null;
 
 interface Point {
@@ -77,6 +81,7 @@ export default function PinchableDart({
 }: PinchableDartProps) {
   const canvasRef = useRef<Optional<HTMLCanvasElement>>(null);
   const contextRef = useRef<Optional<CanvasRenderingContext2D>>(null);
+  const touchTimerRef = useRef<Optional<number>>(null);
 
   /* prettier-ignore */
   const [center, ] = useState<Point>({ x: width / 2, y: height / 2 });
@@ -87,7 +92,7 @@ export default function PinchableDart({
   /* prettier-ignore */
   const [ , setCurrentPinchPair] = useState<Optional<[Point, Point]>>(null);
   /* prettier-ignore */
-  const [ , ] = useState<Optional<Point>>(null);
+  const [draggingPoint, setDraggingPoint] = useState<Optional<Point>>(null);
   /* prettier-ignore */
   const [scale, setScale] = useState<number>(1);
 
@@ -229,82 +234,159 @@ export default function PinchableDart({
       drawContext.beginPath();
       drawContext.fillStyle = colorPoint;
       drawContext.arc(
-        (center.x + point.x) * scale,
-        (center.y + point.y) * scale,
+        center.x + point.x * scale,
+        center.y + point.y * scale,
         pointRadius * scale,
         0,
         Math.PI * 2,
       );
       drawContext.fill();
     });
-  };
 
-  const handleClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas || !contextRef.current) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const clickAbsoluteX = e.clientX - rect.left;
-    const clickAbsoluteY = e.clientY - rect.top;
-
-    setPoints([
-      ...points,
-      {
-        x: (clickAbsoluteX - center.x * scale) / scale,
-        y: (clickAbsoluteY - center.y * scale) / scale,
-      },
-    ]);
-  };
-
-  const handlePinchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
-    if (e.touches.length !== 2) return;
-
-    const touch1: Point = {
-      x: e.touches[0].clientX,
-      y: e.touches[0].clientY,
-    };
-    const touch2: Point = {
-      x: e.touches[1].clientX,
-      y: e.touches[1].clientY,
-    };
-    setInitialPinchPair([touch1, touch2]);
-  };
-
-  const handlePinchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
-    if (e.touches.length !== 2 || initialPinchPair === null) return;
-
-    const touch1: Point = {
-      x: e.touches[0].clientX,
-      y: e.touches[0].clientY,
-    };
-    const touch2: Point = {
-      x: e.touches[1].clientX,
-      y: e.touches[0].clientY,
-    };
-    setCurrentPinchPair([touch1, touch2]);
-
-    const initialDistance = Math.hypot(
-      initialPinchPair[0].x - initialPinchPair[1].x,
-      initialPinchPair[0].y - initialPinchPair[1].y,
-    );
-    const currentDistance = Math.hypot(
-      touch1.x - touch2.x,
-      touch1.y - touch2.y,
-    );
-
-    const currentScale =
-      scale * (1 + 0.5 * (currentDistance - initialDistance) / initialDistance);
-
-    if (currentScale < 0.5) {
-      setScale(0.5);
-    } else if (currentScale > 5) {
-      setScale(5);
-    } else {
-      setScale(currentScale);
+    if (draggingPoint !== null) {
+      drawContext.beginPath();
+      drawContext.fillStyle = colorPoint;
+      drawContext.arc(
+        (center.x + draggingPoint.x) * scale,
+        (center.y + draggingPoint.y) * scale,
+        pointRadius * scale,
+        0,
+        Math.PI * 2,
+      );
     }
   };
 
-  const handlePinchEnd = () => {
+  const handleTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (e.touches.length === 2) {
+      // When the length of touches is 2, then the function should handle
+      // pinching event.
+
+      const touch1: Point = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY,
+      };
+      const touch2: Point = {
+        x: e.touches[1].clientX,
+        y: e.touches[1].clientY,
+      };
+      setInitialPinchPair([touch1, touch2]);
+    } else if (e.touches.length === 1) {
+      // When the length of touches is 1, then the function should handle
+      // clicking or dragging according to starting time.
+
+      touchTimerRef.current = setTimeout(() => {
+        touchTimerRef.current = null;
+      }, LONG_PRESS_TIME);
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (e.touches.length === 2) {
+      if (initialPinchPair === null) return;
+
+      const touch1: Point = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY,
+      };
+      const touch2: Point = {
+        x: e.touches[1].clientX,
+        y: e.touches[0].clientY,
+      };
+      setCurrentPinchPair([touch1, touch2]);
+
+      const initialDistance = Math.hypot(
+        initialPinchPair[0].x - initialPinchPair[1].x,
+        initialPinchPair[0].y - initialPinchPair[1].y,
+      );
+      const currentDistance = Math.hypot(
+        touch1.x - touch2.x,
+        touch1.y - touch2.y,
+      );
+
+      const currentScale =
+        scale *
+        (1 + (0.5 * (currentDistance - initialDistance)) / initialDistance);
+
+      if (currentScale < 0.5) {
+        setScale(0.5);
+      } else if (currentScale > 5) {
+        setScale(5);
+      } else {
+        setScale(currentScale);
+      }
+    } else if (e.touches.length === 1) {
+      if (touchTimerRef.current === null) {
+        // It's long press.
+
+        if (draggingPoint === null) {
+          // When draggingPoint is null, the function should sets the dragging
+          // point.
+
+          const canvas = canvasRef.current;
+          if (!canvas || !contextRef.current) return;
+
+          const rect = canvas.getBoundingClientRect();
+          const downAbsoluteX = e.touches[0].clientX - rect.left;
+          const downAbsoluteY = e.touches[0].clientY - rect.top;
+
+          let minAbsoluteDistance = Math.hypot(
+            downAbsoluteX - center.x - points[0].x * scale,
+            downAbsoluteY - center.y - points[0].y * scale,
+          );
+          let targetPointIndex: Optional<number> = null;
+
+          points.forEach((point, index) => {
+            const distance = Math.hypot(
+              downAbsoluteX - center.x - point.x * scale,
+              downAbsoluteY - center.y - point.y * scale,
+            );
+            console.log(distance);
+            if (distance < minAbsoluteDistance) {
+              minAbsoluteDistance = distance;
+            }
+            if (minAbsoluteDistance < ABSOLUTE_TARGET_DISTANCE) {
+              targetPointIndex = index;
+            }
+          });
+
+          if (targetPointIndex !== null) {
+            setDraggingPoint(points[targetPointIndex]);
+            setPoints(points.filter((_, index) => index !== targetPointIndex));
+          }
+        } else {
+          const canvas = canvasRef.current;
+          if (!canvas || !contextRef.current) return;
+
+          const rect = canvas.getBoundingClientRect();
+          const moveAbsoluteX = e.touches[0].clientX - rect.left;
+          const moveAbsoluteY = e.touches[0].clientY - rect.top;
+
+          setDraggingPoint({
+            x: moveAbsoluteX / scale,
+            y: moveAbsoluteY / scale,
+          });
+        }
+      } else {
+        const canvas = canvasRef.current;
+        if (!canvas || !contextRef.current) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const clickAbsoluteX = e.touches[0].clientX - rect.left;
+        const clickAbsoluteY = e.touches[0].clientY - rect.top;
+
+        setPoints([
+          ...points,
+          {
+            x: (clickAbsoluteX - center.x * scale) / scale,
+            y: (clickAbsoluteY - center.y * scale) / scale,
+          },
+        ]);
+        clearTimeout(touchTimerRef.current);
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
     setInitialPinchPair(null);
     setCurrentPinchPair(null);
   };
@@ -319,18 +401,17 @@ export default function PinchableDart({
     drawDart();
   }, []);
 
-  useEffect(() => drawDart(), [points, scale]);
+  useEffect(() => drawDart(), [points, scale, draggingPoint]);
 
   return (
     <canvas
       ref={canvasRef}
-      onClick={handleClick}
-      onTouchStart={handlePinchStart}
+      onTouchStart={handleTouchStart}
       onTouchMove={throttle(
-        (e: React.TouchEvent<HTMLCanvasElement>) => handlePinchMove(e),
-        16,
+        (e: React.TouchEvent<HTMLCanvasElement>) => handleTouchMove(e),
+        25,
       )}
-      onTouchEnd={handlePinchEnd}
+      onTouchEnd={handleTouchEnd}
     />
   );
 }
