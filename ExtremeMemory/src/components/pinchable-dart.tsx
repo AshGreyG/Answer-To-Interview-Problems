@@ -84,7 +84,7 @@ export default function PinchableDart({
   const touchTimerRef = useRef<Optional<number>>(null);
 
   /* prettier-ignore */
-  const [center, ] = useState<Point>({ x: width / 2, y: height / 2 });
+  const [center, setCenter] = useState<Point>({ x: width / 2, y: height / 2 });
   /* prettier-ignore */
   const [points, setPoints] = useState<Point[]>([]);
   /* prettier-ignore */
@@ -253,10 +253,13 @@ export default function PinchableDart({
         0,
         Math.PI * 2,
       );
+      drawContext.fill();
     }
   };
 
   const handleTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+
     if (e.touches.length === 2) {
       // When the length of touches is 2, then the function should handle
       // pinching event.
@@ -281,6 +284,8 @@ export default function PinchableDart({
   };
 
   const handleTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+
     if (e.touches.length === 2) {
       if (initialPinchPair === null) return;
 
@@ -290,7 +295,7 @@ export default function PinchableDart({
       };
       const touch2: Point = {
         x: e.touches[1].clientX,
-        y: e.touches[0].clientY,
+        y: e.touches[1].clientY,
       };
       setCurrentPinchPair([touch1, touch2]);
 
@@ -314,6 +319,20 @@ export default function PinchableDart({
       } else {
         setScale(currentScale);
       }
+
+      const absoluteOffsetX =
+        (touch1.x + touch2.x) / 2 -
+        (initialPinchPair[0].x + initialPinchPair[1].x) / 2;
+      const absoluteOffsetY =
+        (touch1.y + touch2.y) / 2 -
+        (initialPinchPair[0].y + initialPinchPair[1].y) / 2;
+
+      setCenter({
+        x: center.x + absoluteOffsetX * scale,
+        y: center.y + absoluteOffsetY * scale,
+      });
+
+      // center is the absolute coordinate.
     } else if (e.touches.length === 1) {
       if (touchTimerRef.current === null) {
         // It's long press.
@@ -343,9 +362,9 @@ export default function PinchableDart({
             console.log(distance);
             if (distance < minAbsoluteDistance) {
               minAbsoluteDistance = distance;
-            }
-            if (minAbsoluteDistance < ABSOLUTE_TARGET_DISTANCE) {
-              targetPointIndex = index;
+              if (minAbsoluteDistance < ABSOLUTE_TARGET_DISTANCE) {
+                targetPointIndex = index;
+              }
             }
           });
 
@@ -377,8 +396,8 @@ export default function PinchableDart({
         setPoints([
           ...points,
           {
-            x: (clickAbsoluteX - center.x * scale) / scale,
-            y: (clickAbsoluteY - center.y * scale) / scale,
+            x: (clickAbsoluteX - center.x) / scale,
+            y: (clickAbsoluteY - center.y) / scale,
           },
         ]);
         clearTimeout(touchTimerRef.current);
@@ -386,7 +405,9 @@ export default function PinchableDart({
     }
   };
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+
     if (draggingPoint !== null) {
       setPoints([...points, draggingPoint]);
       setDraggingPoint(null);
@@ -413,15 +434,27 @@ export default function PinchableDart({
   useEffect(() => drawDart(), [points, scale, draggingPoint]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      style={{ width: "100%" }}
-      onTouchStart={handleTouchStart}
-      onTouchMove={throttle(
-        (e: React.TouchEvent<HTMLCanvasElement>) => handleTouchMove(e),
-        25,
-      )}
-      onTouchEnd={handleTouchEnd}
-    />
+    <div style={{ display: "flex", flexDirection: "column" }}>
+      <canvas
+        ref={canvasRef}
+        style={{ width: "100%" }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={throttle(
+          (e: React.TouchEvent<HTMLCanvasElement>) => handleTouchMove(e),
+          25,
+        )}
+        onTouchEnd={handleTouchEnd}
+      />
+      <input
+        type="range"
+        value={scale}
+        min={0.5}
+        max={5}
+        step={0.01}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+          setScale(parseFloat(e.target.value))
+        }
+      />
+    </div>
   );
 }
