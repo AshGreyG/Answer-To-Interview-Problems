@@ -603,7 +603,6 @@ export default function PinchableDart({
     e.preventDefault();
 
     if (touchTimerRef.current !== null && !hasMoved) {
-      console.log(Date.now());
       const canvas = canvasRef.current;
       if (!canvas || !contextRef.current) return;
 
