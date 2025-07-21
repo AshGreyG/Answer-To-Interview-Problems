@@ -453,8 +453,8 @@ export default function PinchableDart({
         (initialPinchPair[0].y + initialPinchPair[1].y) / 2;
 
       if (
-        Math.abs(absoluteOffsetX * scale) <= maxOffset &&
-        Math.abs(absoluteOffsetY * scale) <= maxOffset
+        Math.abs(center.x + absoluteOffsetX * scale - width / 2) <= maxOffset &&
+        Math.abs(center.y + absoluteOffsetY * scale - height / 2) <= maxOffset
       ) {
         setCenter({
           x: center.x + absoluteOffsetX * scale,
@@ -514,22 +514,6 @@ export default function PinchableDart({
             y: (moveAbsoluteY - center.y) / scale,
           });
         }
-      } else {
-        const canvas = canvasRef.current;
-        if (!canvas || !contextRef.current) return;
-
-        const rect = canvas.getBoundingClientRect();
-        const clickAbsoluteX = e.touches[0].clientX - rect.left;
-        const clickAbsoluteY = e.touches[0].clientY - rect.top;
-
-        setPoints([
-          ...points,
-          {
-            x: (clickAbsoluteX - center.x) / scale,
-            y: (clickAbsoluteY - center.y) / scale,
-          },
-        ]);
-        clearTimeout(touchTimerRef.current);
       }
     }
   };
