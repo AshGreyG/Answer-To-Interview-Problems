@@ -527,7 +527,7 @@ export default function PinchableDart({
 
       const rect = canvas.getBoundingClientRect();
       const clickAbsoluteX = e.touches[0].clientX - rect.left;
-      const clickAbsoluteY = e.touches[1].clientY - rect.top;
+      const clickAbsoluteY = e.touches[0].clientY - rect.top;
 
       setPoints([
         ...points,
@@ -678,7 +678,10 @@ export default function PinchableDart({
         )}
         onTouchEnd={handleTouchEnd}
         onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
+        onMouseMove={throttle(
+          (e: React.MouseEvent<HTMLCanvasElement>) => handleMouseMove(e),
+          25,
+        )}
         onMouseUp={handleMouseUp}
       />
       <input
