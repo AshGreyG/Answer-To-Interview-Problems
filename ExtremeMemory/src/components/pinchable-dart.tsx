@@ -16,7 +16,7 @@ const ABSOLUTE_TARGET_DISTANCE = 20;
 
 const LONG_PRESS_TIME = 400;
 
-type Optional<T> = T | null;
+export type Optional<T> = T | null;
 
 interface Point {
   x: number;
@@ -387,6 +387,11 @@ export default function PinchableDart({
   };
 
   const handleTouchEnd = () => {
+    if (draggingPoint !== null) {
+      setPoints([...points, draggingPoint]);
+      setDraggingPoint(null);
+    }
+
     setInitialPinchPair(null);
     setCurrentPinchPair(null);
   };
@@ -399,6 +404,10 @@ export default function PinchableDart({
       contextRef.current = canvas.getContext("2d");
     }
     drawDart();
+
+    return () => {
+      canvasRef.current = null;
+    };
   }, []);
 
   useEffect(() => drawDart(), [points, scale, draggingPoint]);
@@ -406,6 +415,7 @@ export default function PinchableDart({
   return (
     <canvas
       ref={canvasRef}
+      style={{ width: "100%" }}
       onTouchStart={handleTouchStart}
       onTouchMove={throttle(
         (e: React.TouchEvent<HTMLCanvasElement>) => handleTouchMove(e),
