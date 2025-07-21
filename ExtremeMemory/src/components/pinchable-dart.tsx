@@ -13,7 +13,6 @@ const HEX_COLOR = Object.freeze([
 ]);
 
 const ABSOLUTE_TARGET_DISTANCE = 20;
-
 const LONG_PRESS_TIME = 400;
 
 export type Optional<T> = T | null;
@@ -42,12 +41,22 @@ interface PinchableDartProps {
   colorStrokeDark?: `#${string}`;
   /** The color of light stroke, default to #ffffff */
   colorStrokeLight?: `#${string}`;
-  /** The color of points */
+  /** The color of points, default to #dddddd */
   colorPoint?: `#${string}`;
+  /** The color of dragging point, default to #00ff00 */
+  colorDraggingPoint?: `#${string}`;
+  /** The color of average point, default to #00ff00 */
+  colorAveragePoint?: `#${string}`;
+  /** The color of circle stroke, default to #00ff00*/
+  colorStrokeCircle?: `#${string}`;
   /** The width of dark stroke, default to 1.5 */
   dartStrokeWidth?: number;
   /** The base radius of points. */
   pointRadius?: number;
+  /** The min scale of canvas */
+  minScale?: number;
+  /** The max scale of canvas */
+  maxScale?: number;
 }
 
 function throttle(callbackFn: Function, delay: number) {
@@ -76,8 +85,13 @@ export default function PinchableDart({
   colorStrokeDark = "#000000",
   colorStrokeLight = "#ffffff",
   colorPoint = "#dddddd",
+  colorDraggingPoint = "#00ff00",
+  colorAveragePoint = "#00ff00",
+  colorStrokeCircle = "#00ff00",
   dartStrokeWidth = 1.5,
   pointRadius = 5,
+  minScale = 0.5,
+  maxScale = 5,
 }: PinchableDartProps) {
   const canvasRef = useRef<Optional<HTMLCanvasElement>>(null);
   const contextRef = useRef<Optional<CanvasRenderingContext2D>>(null);
@@ -95,6 +109,10 @@ export default function PinchableDart({
   const [draggingPoint, setDraggingPoint] = useState<Optional<Point>>(null);
   /* prettier-ignore */
   const [scale, setScale] = useState<number>(1);
+  /* prettier-ignore */
+  const [isPressing, setIsPressing] = useState<boolean>(false);
+  /* prettier-ignore */
+  const [hasMoved, setHasMoved] = useState<boolean>(false);
 
   const INITIAL_CANVAS_BASE = Math.min(width, height) / 40;
 
@@ -156,7 +174,7 @@ export default function PinchableDart({
 
     drawContext.clearRect(0, 0, width, height);
 
-    RING_RADIUS.map((r, index) => {
+    RING_RADIUS.forEach((r, index) => {
       let currentColor = "#null" as `#${string}`;
       switch (index) {
         case 0:
@@ -230,7 +248,7 @@ export default function PinchableDart({
       }
     });
 
-    points.map((point) => {
+    points.forEach((point) => {
       drawContext.beginPath();
       drawContext.fillStyle = colorPoint;
       drawContext.arc(
@@ -245,15 +263,115 @@ export default function PinchableDart({
 
     if (draggingPoint !== null) {
       drawContext.beginPath();
-      drawContext.fillStyle = colorPoint;
+      drawContext.fillStyle = colorDraggingPoint;
       drawContext.arc(
-        (center.x + draggingPoint.x) * scale,
-        (center.y + draggingPoint.y) * scale,
-        pointRadius * scale,
+        center.x + draggingPoint.x * scale,
+        center.y + draggingPoint.y * scale,
+        pointRadius * scale * 1.1,
         0,
         Math.PI * 2,
       );
       drawContext.fill();
+
+      if (points.length === 0) return;
+
+      let averagePointsX = 0;
+      let averagePointsY = 0;
+      let sumPointsX = 0;
+      let sumPointsY = 0;
+
+      [...points, draggingPoint].forEach((point) => {
+        sumPointsX += center.x + point.x * scale;
+        sumPointsY += center.y + point.y * scale;
+      });
+
+      averagePointsX = sumPointsX / (points.length + 1);
+      averagePointsY = sumPointsY / (points.length + 1);
+
+      drawContext.beginPath();
+      drawContext.fillStyle = colorAveragePoint;
+      drawContext.arc(
+        averagePointsX,
+        averagePointsY,
+        pointRadius * scale * 1.1,
+        0,
+        Math.PI * 2,
+      );
+      drawContext.fill();
+
+      let maxRadius = 0;
+
+      [...points, draggingPoint].forEach((point) => {
+        const distance = Math.hypot(
+          averagePointsX - (center.x + point.x * scale),
+          averagePointsY - (center.y + point.y * scale),
+        );
+
+        if (distance > maxRadius) {
+          maxRadius = distance;
+        }
+      });
+
+      drawContext.beginPath();
+      drawContext.strokeStyle = colorStrokeCircle;
+      drawContext.arc(
+        averagePointsX,
+        averagePointsY,
+        maxRadius,
+        0,
+        Math.PI * 2,
+      );
+      drawContext.stroke();
+    } else {
+      if (points.length === 0) return;
+
+      let averagePointsX = 0;
+      let averagePointsY = 0;
+      let sumPointsX = 0;
+      let sumPointsY = 0;
+
+      points.forEach((point) => {
+        sumPointsX += center.x + point.x * scale;
+        sumPointsY += center.y + point.y * scale;
+      });
+
+      averagePointsX = sumPointsX / points.length;
+      averagePointsY = sumPointsY / points.length;
+
+      drawContext.beginPath();
+      drawContext.fillStyle = colorAveragePoint;
+      drawContext.arc(
+        averagePointsX,
+        averagePointsY,
+        pointRadius * scale * 1.1,
+        0,
+        Math.PI * 2,
+      );
+      drawContext.fill();
+
+      let maxRadius = 0;
+
+      points.forEach((point) => {
+        const distance = Math.hypot(
+          averagePointsX - (center.x + point.x * scale),
+          averagePointsY - (center.y + point.y * scale),
+        );
+
+        if (distance > maxRadius) {
+          maxRadius = distance;
+        }
+      });
+
+      drawContext.beginPath();
+      drawContext.strokeStyle = colorStrokeCircle;
+      drawContext.arc(
+        averagePointsX,
+        averagePointsY,
+        maxRadius,
+        0,
+        Math.PI * 2,
+      );
+      drawContext.stroke();
     }
   };
 
@@ -312,10 +430,10 @@ export default function PinchableDart({
         scale *
         (1 + (0.5 * (currentDistance - initialDistance)) / initialDistance);
 
-      if (currentScale < 0.5) {
-        setScale(0.5);
-      } else if (currentScale > 5) {
-        setScale(5);
+      if (currentScale < minScale) {
+        setScale(minScale);
+      } else if (currentScale > maxScale) {
+        setScale(maxScale);
       } else {
         setScale(currentScale);
       }
@@ -359,7 +477,6 @@ export default function PinchableDart({
               downAbsoluteX - center.x - point.x * scale,
               downAbsoluteY - center.y - point.y * scale,
             );
-            console.log(distance);
             if (distance < minAbsoluteDistance) {
               minAbsoluteDistance = distance;
               if (minAbsoluteDistance < ABSOLUTE_TARGET_DISTANCE) {
@@ -381,8 +498,8 @@ export default function PinchableDart({
           const moveAbsoluteY = e.touches[0].clientY - rect.top;
 
           setDraggingPoint({
-            x: moveAbsoluteX / scale,
-            y: moveAbsoluteY / scale,
+            x: (moveAbsoluteX - center.x) / scale,
+            y: (moveAbsoluteY - center.y) / scale,
           });
         }
       } else {
@@ -417,6 +534,103 @@ export default function PinchableDart({
     setCurrentPinchPair(null);
   };
 
+  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+
+    setIsPressing(true);
+    touchTimerRef.current = setTimeout(() => {
+      touchTimerRef.current = null;
+    }, LONG_PRESS_TIME);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+
+    if (!isPressing) return;
+    setHasMoved(true);
+
+    if (touchTimerRef.current === null) {
+      // It's long press.
+
+      if (draggingPoint === null) {
+        // When draggingPoint is null, the function should sets the dragging
+        // point.
+
+        const canvas = canvasRef.current;
+        if (!canvas || !contextRef.current) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const downAbsoluteX = e.clientX - rect.left;
+        const downAbsoluteY = e.clientY - rect.top;
+
+        let minAbsoluteDistance = Infinity;
+        let targetPointIndex: Optional<number> = null;
+
+        points.forEach((point, index) => {
+          const distance = Math.hypot(
+            downAbsoluteX - center.x - point.x * scale,
+            downAbsoluteY - center.y - point.y * scale,
+          );
+          if (distance < minAbsoluteDistance) {
+            minAbsoluteDistance = distance;
+            if (minAbsoluteDistance < ABSOLUTE_TARGET_DISTANCE) {
+              targetPointIndex = index;
+            }
+          }
+        });
+
+        if (targetPointIndex !== null) {
+          setDraggingPoint(points[targetPointIndex]);
+          setPoints(points.filter((_, index) => index !== targetPointIndex));
+        }
+      } else {
+        const canvas = canvasRef.current;
+        if (!canvas || !contextRef.current) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const moveAbsoluteX = e.clientX - rect.left;
+        const moveAbsoluteY = e.clientY - rect.top;
+
+        setDraggingPoint({
+          x: (moveAbsoluteX - center.x) / scale,
+          y: (moveAbsoluteY - center.y) / scale,
+        });
+      }
+    }
+  };
+
+  const handleMouseUp = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+
+    if (touchTimerRef.current !== null && !hasMoved) {
+      console.log(Date.now());
+      const canvas = canvasRef.current;
+      if (!canvas || !contextRef.current) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const clickAbsoluteX = e.clientX - rect.left;
+      const clickAbsoluteY = e.clientY - rect.top;
+
+      setPoints([
+        ...points,
+        {
+          x: (clickAbsoluteX - center.x) / scale,
+          y: (clickAbsoluteY - center.y) / scale,
+        },
+      ]);
+      clearTimeout(touchTimerRef.current);
+      touchTimerRef.current = null;
+    }
+
+    if (draggingPoint !== null) {
+      setPoints([...points, draggingPoint]);
+      setDraggingPoint(null);
+    }
+
+    setHasMoved(false);
+    setIsPressing(false);
+  };
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (canvas !== null) {
@@ -444,12 +658,15 @@ export default function PinchableDart({
           25,
         )}
         onTouchEnd={handleTouchEnd}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
       />
       <input
         type="range"
         value={scale}
-        min={0.5}
-        max={5}
+        min={minScale}
+        max={maxScale}
         step={0.01}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
           setScale(parseFloat(e.target.value))
