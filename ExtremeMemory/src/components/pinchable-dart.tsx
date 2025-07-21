@@ -434,15 +434,27 @@ export default function PinchableDart({
   useEffect(() => drawDart(), [points, scale, draggingPoint]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      style={{ width: "100%" }}
-      onTouchStart={handleTouchStart}
-      onTouchMove={throttle(
-        (e: React.TouchEvent<HTMLCanvasElement>) => handleTouchMove(e),
-        25,
-      )}
-      onTouchEnd={handleTouchEnd}
-    />
+    <div style={{ display: "flex", flexDirection: "column" }}>
+      <canvas
+        ref={canvasRef}
+        style={{ width: "100%" }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={throttle(
+          (e: React.TouchEvent<HTMLCanvasElement>) => handleTouchMove(e),
+          25,
+        )}
+        onTouchEnd={handleTouchEnd}
+      />
+      <input
+        type="range"
+        value={scale}
+        min={0.5}
+        max={5}
+        step={0.01}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+          setScale(parseFloat(e.target.value))
+        }
+      />
+    </div>
   );
 }
