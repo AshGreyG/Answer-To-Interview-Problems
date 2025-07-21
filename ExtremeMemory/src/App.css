@@ -4,4 +4,9 @@
   justify-content: center;
   align-items: center;
   margin: auto 0;
+  touch-action: none;
+}
+
+canvas#pinchable-dart {
+  touch-action: auto !important;
 }

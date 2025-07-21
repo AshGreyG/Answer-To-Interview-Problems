@@ -668,6 +668,7 @@ export default function PinchableDart({
   return (
     <div style={{ display: "flex", flexDirection: "column" }}>
       <canvas
+        id="pinchable-dart"
         ref={canvasRef}
         style={{ width: "100%" }}
         onTouchStart={handleTouchStart}
