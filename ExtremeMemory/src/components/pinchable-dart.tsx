@@ -94,7 +94,7 @@ export default function PinchableDart({
   pointRadius = 5,
   minScale = 0.5,
   maxScale = 5,
-  maxOffset = 400,
+  maxOffset = 40,
 }: PinchableDartProps) {
   const canvasRef = useRef<Optional<HTMLCanvasElement>>(null);
   const contextRef = useRef<Optional<CanvasRenderingContext2D>>(null);
@@ -431,7 +431,7 @@ export default function PinchableDart({
 
       const currentScale =
         scale *
-        (1 + (0.5 * (currentDistance - initialDistance)) / initialDistance);
+        (1 + (0.05 * (currentDistance - initialDistance)) / initialDistance);
 
       if (currentScale < minScale) {
         setScale(minScale);
