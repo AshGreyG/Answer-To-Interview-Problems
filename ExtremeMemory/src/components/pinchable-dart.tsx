@@ -13,6 +13,7 @@ const HEX_COLOR = Object.freeze([
 ]);
 
 const ABSOLUTE_TARGET_DISTANCE = 20;
+const LONG_PRESS_TIME_MOBILE = 100;
 const LONG_PRESS_TIME = 400;
 
 export type Optional<T> = T | null;
@@ -401,7 +402,7 @@ export default function PinchableDart({
       setIsPressing(true);
       touchTimerRef.current = setTimeout(() => {
         touchTimerRef.current = null;
-      }, LONG_PRESS_TIME);
+      }, LONG_PRESS_TIME_MOBILE);
     }
   };
 
@@ -521,7 +522,7 @@ export default function PinchableDart({
   const handleTouchEnd = (e: React.TouchEvent<HTMLCanvasElement>) => {
     e.preventDefault();
 
-    if (touchTimerRef.current !== null && !hasMoved && e.touches.length === 1) {
+    if (touchTimerRef.current !== null && e.touches.length === 1) {
       const canvas = canvasRef.current;
       if (!canvas || !contextRef.current) return;
 
