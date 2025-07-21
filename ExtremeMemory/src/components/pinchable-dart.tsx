@@ -398,6 +398,7 @@ export default function PinchableDart({
       // When the length of touches is 1, then the function should handle
       // clicking or dragging according to starting time.
 
+      setIsPressing(true);
       touchTimerRef.current = setTimeout(() => {
         touchTimerRef.current = null;
       }, LONG_PRESS_TIME);
@@ -406,6 +407,9 @@ export default function PinchableDart({
 
   const handleTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
     e.preventDefault();
+
+    if (!isPressing) return;
+    setHasMoved(true);
 
     if (e.touches.length === 2) {
       if (initialPinchPair === null) return;
@@ -533,11 +537,32 @@ export default function PinchableDart({
   const handleTouchEnd = (e: React.TouchEvent<HTMLCanvasElement>) => {
     e.preventDefault();
 
+    if (touchTimerRef.current !== null && !hasMoved && e.touches.length === 1) {
+      const canvas = canvasRef.current;
+      if (!canvas || !contextRef.current) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const clickAbsoluteX = e.touches[0].clientX - rect.left;
+      const clickAbsoluteY = e.touches[1].clientY - rect.top;
+
+      setPoints([
+        ...points,
+        {
+          x: (clickAbsoluteX - center.x) / scale,
+          y: (clickAbsoluteY - center.y) / scale,
+        },
+      ]);
+      clearTimeout(touchTimerRef.current);
+      touchTimerRef.current = null;
+    }
+
     if (draggingPoint !== null) {
       setPoints([...points, draggingPoint]);
       setDraggingPoint(null);
     }
 
+    setHasMoved(false);
+    setIsPressing(false);
     setInitialPinchPair(null);
     setCurrentPinchPair(null);
   };
@@ -636,6 +661,8 @@ export default function PinchableDart({
 
     setHasMoved(false);
     setIsPressing(false);
+    setInitialPinchPair(null);
+    setCurrentPinchPair(null);
   };
 
   useEffect(() => {
