@@ -57,6 +57,8 @@ interface PinchableDartProps {
   minScale?: number;
   /** The max scale of canvas */
   maxScale?: number;
+  /** The max offset of dart center */
+  maxOffset?: number;
 }
 
 function throttle(callbackFn: Function, delay: number) {
@@ -92,6 +94,7 @@ export default function PinchableDart({
   pointRadius = 5,
   minScale = 0.5,
   maxScale = 5,
+  maxOffset = 400,
 }: PinchableDartProps) {
   const canvasRef = useRef<Optional<HTMLCanvasElement>>(null);
   const contextRef = useRef<Optional<CanvasRenderingContext2D>>(null);
@@ -445,10 +448,15 @@ export default function PinchableDart({
         (touch1.y + touch2.y) / 2 -
         (initialPinchPair[0].y + initialPinchPair[1].y) / 2;
 
-      setCenter({
-        x: center.x + absoluteOffsetX * scale,
-        y: center.y + absoluteOffsetY * scale,
-      });
+      if (
+        Math.abs(absoluteOffsetX * scale) <= maxOffset &&
+        Math.abs(absoluteOffsetY * scale) <= maxOffset
+      ) {
+        setCenter({
+          x: center.x + absoluteOffsetX * scale,
+          y: center.y + absoluteOffsetY * scale,
+        });
+      }
 
       // center is the absolute coordinate.
     } else if (e.touches.length === 1) {
