@@ -25,9 +25,9 @@ interface Point {
 
 interface PinchableDartProps {
   /** The width of PinchableDart, default to 800 */
-  width?: number;
+  width: number;
   /** The height of PinchableDart, default to 800 */
-  height?: number;
+  height: number;
   /** The color of ring 1~3, default to #ffff00 */
   color1?: `#${string}`;
   /** The color of ring 4~5, default to #ff0000 */
@@ -78,8 +78,8 @@ function throttle(callbackFn: Function, delay: number) {
 }
 
 export default function PinchableDart({
-  width = 800,
-  height = 800,
+  width,
+  height,
   color1 = "#ffff00",
   color2 = "#ff0000",
   color3 = "#0000ff",
@@ -178,7 +178,9 @@ export default function PinchableDart({
     if (canvasRef.current) {
       canvasRef.current.width = width;
       canvasRef.current.height = height;
-      setCenter({ x: width / 2, y: height / 2 });
+      if (width / 2 !== center.x && height / 2 !== center.y) {
+        setCenter({ x: width / 2, y: height / 2 });
+      }
     }
     const drawContext = contextRef.current;
     if (drawContext === null) return;
@@ -674,10 +676,7 @@ export default function PinchableDart({
     };
   }, []);
 
-  useEffect(
-    () => drawDart(),
-    [points, scale, draggingPoint, width, length, center],
-  );
+  useEffect(() => drawDart(), [points, scale, draggingPoint]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column" }}>
