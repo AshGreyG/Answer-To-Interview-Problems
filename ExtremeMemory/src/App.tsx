@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import "./App.css";
 import PinchableDart, { type Optional } from "./components/pinchable-dart";
 
@@ -47,10 +47,11 @@ function App() {
       }}
       ref={containerRef}
     >
-      <PinchableDart
-        width={dimensions?.width}
-        height={dimensions?.width}
-      />
+      {dimensions !== null ? (
+        <PinchableDart width={dimensions.width} height={dimensions.width} />
+      ) : (
+        <React.Fragment />
+      )}
     </div>
   );
 }
