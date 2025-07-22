@@ -117,6 +117,8 @@ export default function PinchableDart({
   const [isPressing, setIsPressing] = useState<boolean>(false);
   /* prettier-ignore */
   const [hasMoved, setHasMoved] = useState<boolean>(false);
+  /* prettier-ignore */
+  const [startTouchesCount, setStartTouchesCount] = useState<number>(0);
 
   const INITIAL_CANVAS_BASE = Math.min(width, height) / 40;
 
@@ -395,11 +397,13 @@ export default function PinchableDart({
         y: e.touches[1].clientY,
       };
       setInitialPinchPair([touch1, touch2]);
+      setStartTouchesCount(2);
     } else if (e.touches.length === 1) {
       // When the length of touches is 1, then the function should handle
       // clicking or dragging according to starting time.
 
       setIsPressing(true);
+      setStartTouchesCount(1);
       touchTimerRef.current = setTimeout(() => {
         touchTimerRef.current = null;
       }, LONG_PRESS_TIME_MOBILE);
@@ -522,13 +526,13 @@ export default function PinchableDart({
   const handleTouchEnd = (e: React.TouchEvent<HTMLCanvasElement>) => {
     e.preventDefault();
 
-    if (touchTimerRef.current !== null && e.touches.length === 1) {
+    if (touchTimerRef.current !== null && startTouchesCount === 1) {
       const canvas = canvasRef.current;
       if (!canvas || !contextRef.current) return;
 
       const rect = canvas.getBoundingClientRect();
-      const clickAbsoluteX = e.touches[0].clientX - rect.left;
-      const clickAbsoluteY = e.touches[0].clientY - rect.top;
+      const clickAbsoluteX = e.changedTouches[0].clientX - rect.left;
+      const clickAbsoluteY = e.changedTouches[0].clientY - rect.top;
 
       setPoints([
         ...points,
@@ -550,6 +554,7 @@ export default function PinchableDart({
     setIsPressing(false);
     setInitialPinchPair(null);
     setCurrentPinchPair(null);
+    setStartTouchesCount(0);
   };
 
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
