@@ -95,7 +95,7 @@ export default function PinchableDart({
   pointRadius = 5,
   minScale = 0.5,
   maxScale = 5,
-  maxOffset = 40,
+  maxOffset = 400,
 }: PinchableDartProps) {
   const canvasRef = useRef<Optional<HTMLCanvasElement>>(null);
   const contextRef = useRef<Optional<CanvasRenderingContext2D>>(null);
@@ -175,6 +175,11 @@ export default function PinchableDart({
    * This function draws the dart and the points.
    */
   const drawDart = () => {
+    if (canvasRef.current) {
+      canvasRef.current.width = width;
+      canvasRef.current.height = height;
+      setCenter({ x: width / 2, y: height / 2 });
+    }
     const drawContext = contextRef.current;
     if (drawContext === null) return;
 
@@ -669,7 +674,10 @@ export default function PinchableDart({
     };
   }, []);
 
-  useEffect(() => drawDart(), [points, scale, draggingPoint]);
+  useEffect(
+    () => drawDart(),
+    [points, scale, draggingPoint, width, length, center],
+  );
 
   return (
     <div style={{ display: "flex", flexDirection: "column" }}>
